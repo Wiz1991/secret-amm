@@ -1,13 +1,13 @@
 use crate::{
-    msg::{HandleMsg, InitMsg, PairInitMsg},
+    msg::{HandleMsg, InitMsg, PairInitMsg, QueryMsg},
     state::{config, config_read, Assets, PairInfo, State},
 };
 use cosmwasm_std::{
-    log, to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, StdError, StdResult,
-    Storage, WasmMsg,
+    log, to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
+    StdResult, Storage, WasmMsg,
 };
-use cosmwasm_storage::PrefixedStorage;
-use secret_toolkit::storage::AppendStoreMut;
+use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
+use secret_toolkit::storage::{AppendStore, AppendStoreMut};
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -29,6 +29,15 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     match msg {
         HandleMsg::CreatePair { assets } => try_handle_create_pair(deps, env, assets),
+    }
+}
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    msg: QueryMsg,
+) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::Config {} => to_binary(&query_config(deps)?),
+        QueryMsg::Pair { assets } => to_binary(&query_pair(deps, assets)?),
     }
 }
 
@@ -78,4 +87,86 @@ pub fn try_handle_create_pair<S: Storage, A: Api, Q: Querier>(
         ],
         data: None,
     })
+}
+
+pub fn query_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<State> {
+    config_read(&deps.storage).load()
+}
+pub fn query_pair<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    assets: Assets,
+) -> StdResult<PairInfo> {
+    let pairs_store: ReadonlyPrefixedStorage<S> =
+        ReadonlyPrefixedStorage::multilevel(&[b"pairs"], &deps.storage);
+    let pairs_store = AppendStore::<PairInfo, _, _>::attach(&pairs_store)
+        .unwrap_or_else(|| return Err(StdError::generic_err("No pairs created")))?;
+
+    let pair = pairs_store
+        .iter()
+        .rev()
+        .find(|x| x.as_ref().unwrap().assets == assets);
+
+    if let Some(pair) = pair {
+        Ok(pair?)
+    } else {
+        return Err(StdError::not_found("Pair not found"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cosmwasm_std::{
+        from_binary,
+        testing::{mock_dependencies, mock_env, MOCK_CONTRACT_ADDR},
+        HumanAddr,
+    };
+
+    use crate::state::Token;
+
+    use super::*;
+
+    #[test]
+    fn proper_initialization() {
+        let mut deps = mock_dependencies(20, &[]);
+
+        let msg = InitMsg {
+            pair_code_id: 23123123,
+        };
+        let env = mock_env("creator", &[]);
+
+        let _res = init(&mut deps, env, msg).unwrap();
+    }
+
+    #[test]
+    fn create_pair() {
+        let mut deps = mock_dependencies(20, &[]);
+
+        let msg = InitMsg {
+            pair_code_id: 23123123,
+        };
+        let env = mock_env("creator", &[]);
+
+        let _res = init(&mut deps, env.clone(), msg).unwrap();
+        let assets = [
+            Token {
+                contract_addr: HumanAddr::from(MOCK_CONTRACT_ADDR),
+            },
+            Token {
+                contract_addr: HumanAddr::from(MOCK_CONTRACT_ADDR),
+            },
+        ];
+        let msg = HandleMsg::CreatePair {
+            assets: assets.clone(),
+        };
+
+        let _res = handle(&mut deps, env, msg).unwrap();
+
+        let msg = QueryMsg::Pair {
+            assets: assets.clone(),
+        };
+
+        let res = query(&deps, msg).unwrap();
+        let value: PairInfo = from_binary(&res).unwrap();
+        assert_eq!(assets, value.assets);
+    }
 }

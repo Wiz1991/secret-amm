@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 const CONFIG_KEY: &[u8] = b"config";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct State {
     pub pair_code_id: u64,
 }
