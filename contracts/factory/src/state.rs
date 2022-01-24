@@ -1,9 +1,16 @@
+use core::fmt;
+
 use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult, Storage};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct State {
+    pub pair_code_id: u64,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Token {
@@ -15,6 +22,11 @@ impl Token {
         Ok(TokenRaw {
             contract_addr: api.canonical_address(&self.contract_addr)?,
         })
+    }
+}
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.contract_addr)
     }
 }
 
@@ -46,10 +58,10 @@ impl PairInfo {
     }
 }
 
-pub fn config<S: Storage>(storage: &mut S) -> Singleton<S, Token> {
+pub fn config<S: Storage>(storage: &mut S) -> Singleton<S, State> {
     singleton(storage, CONFIG_KEY)
 }
 
-pub fn config_read<S: Storage>(storage: &S) -> ReadonlySingleton<S, Token> {
+pub fn config_read<S: Storage>(storage: &S) -> ReadonlySingleton<S, State> {
     singleton_read(storage, CONFIG_KEY)
 }

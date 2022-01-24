@@ -11,3 +11,9 @@ pub struct InitMsg {
 pub enum HandleMsg {
     CreatePair { assets: Assets },
 }
+
+//should seaprate into common package
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct PairInitMsg {
+    pub assets: Assets,
+}
