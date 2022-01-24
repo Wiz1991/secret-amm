@@ -1,7 +1,8 @@
 use crate::{
-    msg::{HandleMsg, InitMsg, PairInitMsg, QueryMsg},
-    state::{config, config_read, Assets, PairInfo, State},
+    msg::{HandleMsg, InitMsg, QueryMsg},
+    state::{config, config_read, State},
 };
+use common::pair::{Assets, PairInfo, PairInitMsg};
 use cosmwasm_std::{
     log, to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
     StdResult, Storage, WasmMsg,
@@ -115,13 +116,12 @@ pub fn query_pair<S: Storage, A: Api, Q: Querier>(
 
 #[cfg(test)]
 mod tests {
+    use common::pair::Token;
     use cosmwasm_std::{
         from_binary,
         testing::{mock_dependencies, mock_env, MOCK_CONTRACT_ADDR},
         HumanAddr,
     };
-
-    use crate::state::Token;
 
     use super::*;
 
