@@ -14,15 +14,19 @@ exclude = [
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+
 [features]
 backtraces = ["cosmwasm-std/backtraces"]
-debug-print = ["cosmwasm-std/debug-print"]
 
 [dependencies]
-cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-secret-toolkit = "0.2.0"
+cosmwasm-std = { version = "0.10", package = "secret-cosmwasm-std" }
+cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }
+secret-toolkit = { version = "0.2", features = ["incubator"] }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
+bincode2 = "2.0.1"
+base64 = "0.12.3"
+
+[dev-dependencies]
+cosmwasm-schema = { version = "0.9.2" }
