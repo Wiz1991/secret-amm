@@ -1,6 +1,6 @@
 use crate::{
     msg::{HandleMsg, InitMsg, PairInitMsg},
-    state::{config_read, Assets, PairInfo},
+    state::{config, config_read, Assets, PairInfo, State},
 };
 use cosmwasm_std::{
     log, to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, StdError, StdResult,
@@ -9,10 +9,16 @@ use cosmwasm_std::{
 use cosmwasm_storage::PrefixedStorage;
 use secret_toolkit::storage::AppendStoreMut;
 pub fn init<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
+    deps: &mut Extern<S, A, Q>,
     _env: Env,
-    _msg: InitMsg,
+    msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    let state = State {
+        pair_code_id: msg.pair_code_id,
+    };
+
+    config(&mut deps.storage).save(&state)?;
+
     Ok(InitResponse::default())
 }
 
