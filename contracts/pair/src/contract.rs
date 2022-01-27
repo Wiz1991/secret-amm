@@ -1,11 +1,12 @@
-use common::pair::{AssetsRaw, PairInitMsg as InitMsg, TokenRaw};
+use common::pair::{AssetMeta, Pair, PairInitMsg as InitMsg};
 use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, InitResponse, Querier, StdResult, Storage,
+    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+    StdError, StdResult, Storage,
 };
 
 use crate::{
-    msg::QueryMsg,
-    state::{config, config_read, Pair},
+    msg::{HandleMsg, QueryMsg},
+    state::{config, config_read},
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -13,19 +14,9 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let assets_raw: AssetsRaw = [
-        TokenRaw {
-            contract_addr: deps.api.canonical_address(&msg.assets[0].contract_addr)?,
-        },
-        TokenRaw {
-            contract_addr: deps.api.canonical_address(&msg.assets[1].contract_addr)?,
-        },
-    ];
+    let pair = Pair::new(&msg.assets_meta, env.contract.address, deps.api);
 
-    config(&mut deps.storage).save(&Pair {
-        assets: assets_raw,
-        contract_addr: deps.api.canonical_address(&env.contract.address)?,
-    })?;
+    config(&mut deps.storage).save(&pair)?;
 
     Ok(InitResponse::default())
 }
@@ -36,7 +27,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::Pair {} => to_binary(&query_pair(&deps)?),
-        QueryMsg::Pool {} => todo!(),
+        QueryMsg::Pool {} => to_binary(&query_pool(&deps)?),
     }
 }
 
@@ -44,16 +35,39 @@ pub fn query_pair<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
     config_read(&deps.storage).load()
 }
 
+pub fn query_pool<S: Storage, A: Api, Q: Querier>(_deps: &Extern<S, A, Q>) -> StdResult<String> {
+    Ok(String::from("test"))
+}
+
+pub fn handle<S: Storage, A: Api, Q: Querier>(
+    _deps: &Extern<S, A, Q>,
+    _env: Env,
+    _msg: HandleMsg,
+) -> StdResult<HandleResponse> {
+    Ok(HandleResponse::default())
+}
+
+pub fn try_add_liquidity<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    _env: Env,
+    _assets: [AssetMeta; 2],
+    _receiver: Option<HumanAddr>,
+) -> StdResult<HandleResponse> {
+    let _config = config_read(&deps.storage).load()?;
+
+    Ok(HandleResponse::default())
+}
+
 #[cfg(test)]
 mod tests {
-    use common::pair::{PairInitMsg, Token};
+    use common::pair::{AssetMeta, Pair, PairInitMsg};
     use cosmwasm_std::{
         from_binary,
         testing::{mock_dependencies, mock_env, MOCK_CONTRACT_ADDR},
         HumanAddr,
     };
 
-    use crate::{msg::QueryMsg, state::Pair};
+    use crate::msg::QueryMsg;
 
     use super::{init, query};
 
@@ -62,16 +76,16 @@ mod tests {
         let mut deps = mock_dependencies(20, &[]);
         let env = mock_env("creator", &[]);
 
-        let assets = [
-            Token {
+        let assets_meta = [
+            AssetMeta::Token {
                 contract_addr: HumanAddr::from(MOCK_CONTRACT_ADDR),
             },
-            Token {
+            AssetMeta::Token {
                 contract_addr: HumanAddr::from(MOCK_CONTRACT_ADDR),
             },
         ];
         let msg = PairInitMsg {
-            assets: assets.clone(),
+            assets_meta: assets_meta.clone(),
         };
 
         let _res = init(&mut deps, env, msg).unwrap();

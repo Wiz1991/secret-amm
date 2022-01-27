@@ -1,4 +1,4 @@
-use common::pair::Assets;
+use common::pair::AssetMeta;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,14 +11,12 @@ pub struct InitMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    CreatePair { assets: Assets },
+    CreatePair { assets_meta: [AssetMeta; 2] },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Config {},
-    Pair { assets: Assets },
+    Pair { assets_meta: [AssetMeta; 2] },
 }
-
-//should seaprate into common package
